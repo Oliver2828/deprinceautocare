@@ -2,16 +2,15 @@
 import React, { Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
-
 import Inventory from "./pages/Inventory";
-
-
 import SelectionSection from "./pages/Selection";
 import InvenDash from "./components/inventory/InvenDash";
-
 import AddProduct from "./components/inventory/AddProduct";
-
 import Products from "./components/inventory/Products";
+import SalesDash from "./components/sales/SalesDash";
+import CheckSales from "./components/sales/CheckSales";
+import AddDailySales from "./components/sales/AddDailySales";
+
 
 export default function App() {
   // the role-based guarded routes were removed per latest requirements
@@ -23,11 +22,18 @@ export default function App() {
         <Route path="/options" element={<SelectionSection />} />
        
         <Route path="/inventory" element={<Inventory />} />
-        <Route path="/invendash" element={<InvenDash />
-}>
+        <Route path="/invendash" element={<InvenDash />}>
           <Route index element={<Products />} />
           <Route path="new-records" element={<AddProduct />} />
           <Route path="product-list" element={<Products />} />
+         
+          
+        </Route>
+
+         <Route path="/daily-sales" element={<SalesDash />}>
+          <Route index element={<CheckSales />} />
+          <Route path="new-sales" element={<AddDailySales />} />
+          <Route path="check-sales" element={<CheckSales />} />
          
           
         </Route>
