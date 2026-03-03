@@ -332,3 +332,184 @@ function AddProduct() {
 }
 
 export default AddProduct
+
+
+
+
+
+// import React, { useState } from 'react'
+
+// function AddProduct() {
+//   const [rows, setRows] = useState([
+//     { name: '', category: '', quantity: '', price: '' }
+//   ])
+
+//   const handleChange = (index, field, value) => {
+//     const updated = [...rows]
+//     updated[index][field] = value
+//     setRows(updated)
+//   }
+
+//   const addRow = () => {
+//     setRows([...rows, { name: '', category: '', quantity: '', price: '' }])
+//   }
+
+//   const removeRow = (index) => {
+//     if (rows.length === 1) return
+//     setRows(rows.filter((_, i) => i !== index))
+//   }
+
+//   const handleSubmit = () => {
+//     // Validate — make sure no row is empty
+//     const hasEmpty = rows.some(row => !row.name || !row.category || !row.quantity || !row.price)
+//     if (hasEmpty) {
+//       alert('Please fill in all fields before saving.')
+//       return
+//     }
+
+//     // Get existing products from localStorage
+//     const existing = JSON.parse(localStorage.getItem('products') || '[]')
+
+//     // Add id and brand to each new row
+//     const newProducts = rows.map((row, i) => ({
+//       id: Date.now() + i,
+//       brand: 'DePrince AutoCare',
+//       name: row.name,
+//       category: row.category,
+//       quantity: Number(row.quantity),
+//       price: Number(row.price),
+//     }))
+
+//     // Merge and save
+//     const updated = [...existing, ...newProducts]
+//     localStorage.setItem('products', JSON.stringify(updated))
+
+//     // Reset form
+//     setRows([{ name: '', category: '', quantity: '', price: '' }])
+//     alert(`${newProducts.length} product${newProducts.length > 1 ? 's' : ''} saved successfully!`)
+//   }
+
+//   return (
+//     <div className="p-6">
+
+//       {/* Header */}
+//       <div className="flex items-center justify-between mb-6">
+//         <div>
+//           <h2 className="text-2xl font-bold text-gray-800">Add Products</h2>
+//           <p className="text-sm text-gray-400 mt-0.5">All products are under <span className="text-red-500 font-semibold">DePrince AutoCare</span></p>
+//         </div>
+//         <button
+//           onClick={addRow}
+//           className="flex items-center gap-2 bg-gradient-to-br from-red-600 to-red-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:opacity-90 transition"
+//         >
+//           + Add Row
+//         </button>
+//       </div>
+
+//       {/* Table */}
+//       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+//         <table className="w-full text-sm">
+
+//           <thead>
+//             <tr className="bg-gradient-to-br from-red-600 to-red-700 text-white">
+//               <th className="text-left px-4 py-3 font-semibold">#</th>
+//               <th className="text-left px-4 py-3 font-semibold">Product Name</th>
+//               <th className="text-left px-4 py-3 font-semibold">Category</th>
+//               <th className="text-left px-4 py-3 font-semibold">Brand</th>
+//               <th className="text-left px-4 py-3 font-semibold">Quantity</th>
+//               <th className="text-left px-4 py-3 font-semibold">Price (₦)</th>
+//               <th className="px-4 py-3"></th>
+//             </tr>
+//           </thead>
+
+//           <tbody>
+//             {rows.map((row, index) => (
+//               <tr
+//                 key={index}
+//                 className={`border-t border-gray-100 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+//               >
+//                 <td className="px-4 py-3 text-gray-400 font-medium">{index + 1}</td>
+
+//                 <td className="px-4 py-3">
+//                   <input
+//                     value={row.name}
+//                     onChange={(e) => handleChange(index, 'name', e.target.value)}
+//                     placeholder="e.g. Engine Oil"
+//                     className="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-red-400 transition bg-white"
+//                   />
+//                 </td>
+
+//                 <td className="px-4 py-3">
+//                   <select
+//                     value={row.category}
+//                     onChange={(e) => handleChange(index, 'category', e.target.value)}
+//                     className="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-red-400 transition bg-white text-gray-600"
+//                   >
+//                     <option value="">Select</option>
+//                     <option value="Engine Parts">Engine Parts</option>
+//                     <option value="Lubricants">Lubricants</option>
+//                     <option value="Tyres">Tyres</option>
+//                     <option value="Batteries">Batteries</option>
+//                     <option value="Brakes">Brakes</option>
+//                     <option value="Filters">Filters</option>
+//                     <option value="Accessories">Accessories</option>
+//                     <option value="Other">Other</option>
+//                   </select>
+//                 </td>
+
+//                 <td className="px-4 py-3">
+//                   <span className="bg-red-50 text-red-600 text-xs font-semibold px-3 py-1.5 rounded-lg">
+//                     DePrince AutoCare
+//                   </span>
+//                 </td>
+
+//                 <td className="px-4 py-3">
+//                   <input
+//                     type="number"
+//                     value={row.quantity}
+//                     onChange={(e) => handleChange(index, 'quantity', e.target.value)}
+//                     placeholder="0"
+//                     className="w-24 border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-red-400 transition bg-white"
+//                   />
+//                 </td>
+
+//                 <td className="px-4 py-3">
+//                   <input
+//                     type="number"
+//                     value={row.price}
+//                     onChange={(e) => handleChange(index, 'price', e.target.value)}
+//                     placeholder="0.00"
+//                     className="w-28 border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-red-400 transition bg-white"
+//                   />
+//                 </td>
+
+//                 <td className="px-4 py-3">
+//                   <button
+//                     onClick={() => removeRow(index)}
+//                     className="text-red-400 hover:text-red-600 transition text-lg font-bold"
+//                   >
+//                     ×
+//                   </button>
+//                 </td>
+//               </tr>
+//             ))}
+//           </tbody>
+//         </table>
+//       </div>
+
+//       {/* Footer */}
+//       <div className="flex justify-between items-center mt-5">
+//         <p className="text-sm text-gray-400">{rows.length} item{rows.length > 1 ? 's' : ''} ready to save</p>
+//         <button
+//           onClick={handleSubmit}
+//           className="bg-gradient-to-br from-red-600 to-red-700 text-white font-semibold px-6 py-2.5 rounded-xl hover:opacity-90 transition"
+//         >
+//           Save All Products
+//         </button>
+//       </div>
+
+//     </div>
+//   )
+// }
+
+// export default AddProduct
