@@ -16,7 +16,7 @@ export default function App() {
   // the role-based guarded routes were removed per latest requirements
 
   return (
-    <BrowserRouter>
+    <BrowserRouter>  
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/options" element={<SelectionSection />} />
