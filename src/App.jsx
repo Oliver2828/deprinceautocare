@@ -29,7 +29,7 @@ export default function App() {
          
           
         </Route>
-
+     
          <Route path="/daily-sales" element={<SalesDash />}>
           <Route index element={<CheckSales />} />
           <Route path="new-sales" element={<AddDailySales />} />
