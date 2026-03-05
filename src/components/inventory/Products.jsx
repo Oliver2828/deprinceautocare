@@ -1,10 +1,12 @@
 // Product.jsx - Enhanced Product List View with Working Pagination
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
-import { Search, Package, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, Package, ChevronDown, ChevronLeft, ChevronRight, Edit2, Clock } from 'lucide-react'
 
 function Product() {
   const [products, setProducts] = useState([])
+  const [history, setHistory] = useState([])
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [categoryFilter, setCategoryFilter] = useState('all')
@@ -94,6 +96,46 @@ function Product() {
   useEffect(() => {
     setCurrentPage(1)
   }, [search, categoryFilter, sortBy])
+
+  // handler for edit button
+  const handleEdit = async (prod) => {
+    const qtyStr = prompt('Enter new quantity', prod.quantity)
+    if (qtyStr == null) return
+    const qty = parseInt(qtyStr, 10)
+    if (isNaN(qty) || qty < 0) {
+      alert('Invalid quantity')
+      return
+    }
+    try {
+      const token = localStorage.getItem('token')
+      await axios.put(`/api/products/${prod._id || prod.id}`, { quantity: qty }, {
+        baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      window.dispatchEvent(new Event('inventory-updated'))
+    } catch (err) {
+      console.error('Failed to update quantity', err)
+      alert('Failed to update product quantity')
+    }
+  }
+
+  // show history modal
+  const openHistory = async (id) => {
+    try {
+      const token = localStorage.getItem('token')
+      const res = await axios.get(`/api/products/${id}`, {
+        baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      setHistory(res.data.history || [])
+      setShowHistoryModal(true)
+    } catch (err) {
+      console.error('Failed to load history', err)
+      alert('Could not fetch history')
+    }
+  }
+
+  const closeModal = () => setShowHistoryModal(false)
 
   const totalValue = filtered.reduce((sum, p) => sum + (p.price * p.quantity), 0)
   const lowStockCount = filtered.filter(p => p.quantity <= 5).length
@@ -241,6 +283,7 @@ function Product() {
                     <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Unit Price</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Total Value</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -304,6 +347,14 @@ function Product() {
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${stockStatus.color}`}>
                               {stockStatus.label}
                             </span>
+                          </td>
+                          <td className="px-6 py-4 flex gap-2">
+                            <button onClick={() => handleEdit(product)} className="text-blue-600 hover:text-blue-800">
+                              <Edit2 size={16} />
+                            </button>
+                            <button onClick={() => openHistory(product._id || product.id)} className="text-gray-600 hover:text-gray-800">
+                              <Clock size={16} />
+                            </button>
                           </td>
                         </tr>
                       )
@@ -372,6 +423,36 @@ function Product() {
               >
                 Next
                 <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* history modal */}
+        {showHistoryModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-sm max-h-[80vh] overflow-auto">
+              <h2 className="text-xl font-bold mb-4">Edit History</h2>
+              {history.length === 0 ? (
+                <p className="text-sm text-gray-600">No quantity changes recorded.</p>
+              ) : (
+                <ul className="space-y-2 text-sm">
+                  {history.map((h, i) => (
+                    <li key={i}>
+                      <span>{new Date(h.date).toLocaleString()}</span>
+                      {' changed from '}
+                      <strong>{h.oldQuantity}</strong>
+                      {' to '}
+                      <strong>{h.newQuantity}</strong>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <button
+                onClick={closeModal}
+                className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg"
+              >
+                Close
               </button>
             </div>
           </div>
