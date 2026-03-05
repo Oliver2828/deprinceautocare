@@ -6,4 +6,9 @@ export default defineConfig({
   plugins: [
     tailwindcss(), react()
   ],
+  server: {
+    proxy: {
+      '/api': 'https://deprinceautocare-backend.onrender.com',
+    },
+  },
 })

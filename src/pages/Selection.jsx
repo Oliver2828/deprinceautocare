@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   Package, 
   FileText, 
@@ -15,6 +16,8 @@ import {
 } from 'lucide-react';
 
 function SelectionSection() {
+  const navigate = useNavigate();
+
   const cards = [
     {
       id: 1,
@@ -25,7 +28,8 @@ function SelectionSection() {
       accentColor: "text-red-600",
       bgColor: "bg-red-500",
       delay: 0.2,
-      features: [ "Stock monitoring", ]
+      features: [ "Stock monitoring" ],
+      route: "/invendash"
     },
     {
       id: 2,
@@ -36,9 +40,9 @@ function SelectionSection() {
       accentColor: "text-red-600",
       bgColor: "bg-red-500",
       delay: 0.4,
-      features: [ "Sales tracking"]
+      features: [ "Sales tracking"],
+      route: "/daily-sales"
     },
-    
   ];
 
   const containerVariants = {
@@ -201,6 +205,7 @@ function SelectionSection() {
                 <motion.button
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
+                  onClick={() => card.route && navigate(card.route)}
                   className={`w-full py-4 px-6 rounded-xl bg-gradient-to-r ${card.bgColor} to-red-600 text-white font-semibold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all duration-300 group/btn relative overflow-hidden`}
                 >
                   <span className="relative z-10">Get Started</span>

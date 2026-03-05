@@ -1,4 +1,6 @@
 import React from 'react';
+// bundler-friendly import for the video asset
+import carVideo from '../assets/car4.mp4';
 
 function Video() {
   return (
@@ -12,7 +14,7 @@ function Video() {
           muted
           loop
         >
-          <source src="/src/assets/car4.mp4" type="video/mp4" />
+          <source src={carVideo} type="video/mp4" />
           Your browser does not support the video tag.
         </video>
         <div className="absolute inset-0 bg-gradient-to-t from-red-900/70 to-red-800/50 z-10"></div>

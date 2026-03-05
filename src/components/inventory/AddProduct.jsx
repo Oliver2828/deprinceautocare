@@ -1,5 +1,6 @@
 // AddProduct.jsx - Enhanced Add Product Form
 import React, { useState } from 'react'
+import axios from 'axios'
 import { Plus, Trash2, Save, Package, AlertCircle, CheckCircle } from 'lucide-react'
 
 function AddProduct() {
@@ -53,7 +54,7 @@ function AddProduct() {
     return rowErrors
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Validate all rows
     let allErrors = {}
     rows.forEach((row, index) => {
@@ -66,31 +67,37 @@ function AddProduct() {
       return
     }
 
-    // Get existing products from localStorage
-    const existing = JSON.parse(localStorage.getItem('products') || '[]')
-
-    // Add id and brand to each new row
-    const newProducts = rows.map((row, i) => ({
-      id: Date.now() + i,
+    // prepare payload for backend
+    const payload = rows.map((row, i) => ({
       brand: 'DePrince AutoCare',
       name: row.name.trim(),
       category: row.category,
       quantity: Number(row.quantity),
       price: Number(row.price),
-      dateAdded: new Date().toISOString()
+      dateAdded: new Date().toISOString(),
     }))
 
-    // Merge and save
-    const updated = [...existing, ...newProducts]
-    localStorage.setItem('products', JSON.stringify(updated))
+    try {
+      const token = localStorage.getItem('token')
+      await axios.post('/api/products', payload, {
+        baseURL: import.meta.env.VITE_BACKEND_URL || 'https://deprinceautocare-backend.onrender.com',
+        headers: { Authorization: `Bearer ${token}` },
+      })
 
-    // Show success message
-    setShowSuccess(true)
-    setTimeout(() => setShowSuccess(false), 3000)
+      // show success message
+      setShowSuccess(true)
+      setTimeout(() => setShowSuccess(false), 3000)
 
-    // Reset form
-    setRows([{ name: '', category: '', quantity: '', price: '' }])
-    setErrors({})
+      // reset form
+      setRows([{ name: '', category: '', quantity: '', price: '' }])
+      setErrors({})
+
+      // notify other components (product list, sales form) that inventory changed
+      window.dispatchEvent(new Event('inventory-updated'))
+    } catch (err) {
+      console.error('Failed to save products', err)
+      alert('Failed to save products. Make sure you are logged in.')
+    }
   }
 
   return (

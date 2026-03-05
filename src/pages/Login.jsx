@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import Video from '../components/Video';
 
 function Login() {
@@ -9,40 +11,40 @@ function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
-  
-  // Test credentials for demo
-  const testCredentials = {
-    email: 'demo@example.com',
-    password: 'password123'
-  };
-  
+
+  const navigate = useNavigate();
+
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoginError('');
     setIsLoading(true);
-    
-    // Simulate API call delay
-    setTimeout(() => {
-      if (email === testCredentials.email && password === testCredentials.password) {
-        // Successful login (no state switching)
-        console.log('Login successful!');
-        alert('Login successful! Welcome back!');
-      } else {
-        // Failed login
-        setLoginError('Invalid email or password. Try: demo@example.com / password123');
-      }
+
+    try {
+      const response = await axios.post(
+        '/api/auth/login',
+        { email, password },
+        { baseURL: import.meta.env.VITE_BACKEND_URL || 'https://deprinceautocare-backend.onrender.com' }
+      );
+
+      // store token if needed
+      const { token } = response.data;
+      localStorage.setItem('token', token);
+
+      // redirect to options
+      navigate('/options');
+    } catch (err) {
+      console.error('Login failed', err);
+      setLoginError(
+        err.response?.data?.message || 'Invalid email or password'
+      );
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
   
 
-  // Auto-fill demo credentials for testing
-  const fillDemoCredentials = () => {
-    setEmail(testCredentials.email);
-    setPassword(testCredentials.password);
-    setLoginError('');
-  };
+
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-white to-red-50 flex items-center justify-center p-4">
