@@ -24,7 +24,7 @@ function Login() {
       const response = await axios.post(
         '/api/auth/login',
         { email, password },
-        { baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000' }
+        { baseURL: import.meta.env.VITE_BACKEND_URL || 'https://deprinceautocare-backend.onrender.com' }
       );
 
       // store token if needed

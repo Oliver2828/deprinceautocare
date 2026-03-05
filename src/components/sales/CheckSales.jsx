@@ -1,14 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import axios from 'axios';
 import { motion } from 'framer-motion';
 
-// Mock data (unchanged)
-const mockSalesData = [
-  { id: 1, date: '2026-02-28', product: 'Coffee', quantity: 5, unitPrice: 3.50, total: 17.50 },
-  { id: 2, date: '2026-02-28', product: 'Sandwich', quantity: 2, unitPrice: 7.00, total: 14.00 },
-  { id: 3, date: '2026-02-27', product: 'T-shirt', quantity: 3, unitPrice: 15.00, total: 45.00 },
-  { id: 4, date: '2026-02-27', product: 'Cap', quantity: 1, unitPrice: 12.00, total: 12.00 },
-  { id: 5, date: '2026-02-26', product: 'Coffee', quantity: 8, unitPrice: 3.50, total: 28.00 },
-];
+// initial empty array; data loaded from backend
+const mockSalesData = [];
 
 // Helper to get date presets
 const getDatePreset = (preset) => {
@@ -50,13 +45,16 @@ const CheckDailySales = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
+  const [sales, setSales] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Filter sales based on date range
   const filteredData = useMemo(() => {
-    if (!startDate && !endDate) return mockSalesData;
+    const source = sales; // use backend data
+    if (!startDate && !endDate) return source;
 
-    return mockSalesData.filter((sale) => {
-      const saleDate = sale.date;
+    return source.filter((sale) => {
+      const saleDate = sale.date.slice(0, 10); // compare yyyy-mm-dd
       if (startDate && endDate) {
         return saleDate >= startDate && saleDate <= endDate;
       } else if (startDate) {
@@ -66,7 +64,7 @@ const CheckDailySales = () => {
       }
       return true;
     });
-  }, [startDate, endDate]);
+  }, [startDate, endDate, sales]);
 
   // Sort data
   const sortedData = useMemo(() => {
@@ -104,6 +102,33 @@ const CheckDailySales = () => {
     setStartDate(start);
     setEndDate(end);
   };
+
+  // Fetch sales from backend
+  const fetchSales = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('/api/sales', {
+        baseURL: import.meta.env.VITE_BACKEND_URL || 'https://deprinceautocare-backend.onrender.com',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSales(res.data);
+    } catch (err) {
+      console.error('Failed to load sales', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSales();
+
+    const listener = () => {
+      setLoading(true);
+      fetchSales();
+    };
+    window.addEventListener('sale-added', listener);
+    return () => window.removeEventListener('sale-added', listener);
+  }, []);
 
   // Reset filters
   const resetFilters = () => {
@@ -279,13 +304,13 @@ const CheckDailySales = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {sortedData.length > 0 ? (
                   sortedData.map((sale) => (
-                    <motion.tr key={sale.id} variants={listItem} className="hover:bg-gray-50 transition">
+                    <tr key={sale._id || sale.id} className="hover:bg-gray-50 transition">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{sale.date}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{sale.product}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{sale.quantity}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">₦{sale.unitPrice.toFixed(2)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₦{sale.total.toFixed(2)}</td>
-                    </motion.tr>
+                    </tr>
                   ))
                 ) : (
                   <tr>
@@ -304,7 +329,7 @@ const CheckDailySales = () => {
             </table>
           </div>
           <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 text-sm text-gray-500">
-            Showing {sortedData.length} of {mockSalesData.length} records
+            Showing {sortedData.length} of {sales.length} records
           </div>
         </motion.div>
       </div>

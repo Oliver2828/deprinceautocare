@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const AddDailySales = () => {
+  const today = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
   const [formData, setFormData] = useState({
-    date: '',
+    date: today,
     product: '',
     quantity: '',
     unitPrice: '',
     total: 0,
   });
+  const [products, setProducts] = useState([]); // for autocomplete
+  const [availableQty, setAvailableQty] = useState(null);
+  const [selectedProductId, setSelectedProductId] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
   // animation variants
@@ -34,6 +39,24 @@ const AddDailySales = () => {
     });
   }, [formData.quantity, formData.unitPrice]);
 
+  // fetch product list for autocomplete
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get('/api/products', {
+          baseURL: import.meta.env.VITE_BACKEND_URL || 'https://deprinceautocare-backend.onrender.com',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log('loaded products:', res.data);
+        setProducts(res.data);
+      } catch (err) {
+        console.error('Could not load products', err);
+      }
+    };
+    load();
+  }, []);
+
   const handleChange = (e) => {
     const { name, value, type } = e.target;
     let newVal = value;
@@ -43,32 +66,86 @@ const AddDailySales = () => {
       else newVal = parseFloat(value) || 0;
     }
     setFormData((prev) => ({ ...prev, [name]: newVal }));
+
+    if (name === 'product') {
+      const prod = products.find((p) => p.name === value);
+      console.log('lookup prod for', value, 'result', prod);
+      if (prod) {
+        setAvailableQty(prod.quantity);
+        setFormData(prev => ({ ...prev, unitPrice: prod.price || '' }));
+        setSelectedProductId(prod._id);
+      } else {
+        setAvailableQty(null);
+        setSelectedProductId(null);
+      }
+    }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Sales entry submitted:', formData);
-    // Simulate API call
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
-    // Reset form to empty values
-    setFormData({
-      date: '',
-      product: '',
-      quantity: '',
-      unitPrice: '',
-      total: 0,
-    });
+    try {
+      // validate quantity against available
+      if (availableQty !== null && formData.quantity > availableQty) {
+        alert('Quantity exceeds available stock');
+        return;
+      }
+      const token = localStorage.getItem('token');
+      const payload = {
+        ...formData,
+        product: formData.product.trim(),
+        productId: selectedProductId,
+        quantity: Number(formData.quantity) || 0,
+        unitPrice: Number(formData.unitPrice) || 0,
+        total: Number(formData.total) || 0,
+      };
+      console.log('submitting sale payload', payload);
+      const response = await axios.post('/api/sales', payload, {
+        baseURL: import.meta.env.VITE_BACKEND_URL || 'https://deprinceautocare-backend.onrender.com',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log('sale response', response.data);
+      // optionally fetch updated product info to check quantity
+      if (selectedProductId) {
+        try {
+          const url = `/api/products/${selectedProductId}`;
+          console.log('fetching url', url);
+          const prodRes = await axios.get(url, {
+            baseURL: import.meta.env.VITE_BACKEND_URL || 'https://deprinceautocare-backend.onrender.com',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          console.log('product after sale', prodRes.data);
+        } catch (e) {
+          console.error('could not fetch product after sale', e);
+        }
+      }
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+      setFormData({
+        date: today,
+        product: '',
+        quantity: '',
+        unitPrice: '',
+        total: 0,
+      });
+      setAvailableQty(null);
+      window.dispatchEvent(new Event('sale-added')); // notify other components
+      window.dispatchEvent(new Event('inventory-updated')) // also trigger general inventory refresh
+
+    } catch (err) {
+      console.error('Failed to submit sale', err);
+      alert('Could not save sale, verify you are logged in.');
+    }
   };
 
   const handleClear = () => {
     setFormData({
-      date: '',
+      date: today,
       product: '',
       quantity: '',
       unitPrice: '',
       total: 0,
     });
+    setAvailableQty(null);
   };
 
   // Icons (simple SVGs)
@@ -175,16 +252,29 @@ const AddDailySales = () => {
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <PackageIcon />
                     </div>
-                    <input
-                      type="text"
-                      id="product"
-                      name="product"
-                      value={formData.product}
-                      onChange={handleChange}
-                      placeholder="e.g. Coffee, T‑shirt, Consultation"
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-300 focus:border-red-400 outline-none transition"
-                      required
-                    />
+                    <div className="relative">
+                  <input
+                    type="text"
+                    list="product-list"
+                    id="product"
+                    name="product"
+                    value={formData.product}
+                    onChange={handleChange}
+                    placeholder="Start typing to search products"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-300 focus:border-red-400 outline-none transition"
+                    required
+                  />
+                  <datalist id="product-list">
+                    {products.map((p) => (
+                      <option key={p._id} value={p.name} />
+                    ))}
+                  </datalist>
+                </div>
+                {availableQty !== null && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    In stock: {availableQty}
+                  </p>
+                )}
                   </div>
                 </motion.div>
 

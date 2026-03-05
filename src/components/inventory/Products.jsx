@@ -1,5 +1,6 @@
 // Product.jsx - Enhanced Product List View with Working Pagination
 import React, { useState, useEffect } from 'react'
+import axios from 'axios'
 import { Search, Package, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 
 function Product() {
@@ -13,13 +14,37 @@ function Product() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
 
+  const fetchProducts = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        const res = await axios.get('/api/products', {
+          baseURL: import.meta.env.VITE_BACKEND_URL || 'https://deprinceautocare-backend.onrender.com',
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        setProducts(res.data)
+      } catch (err) {
+        console.error('Failed to load products', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
   useEffect(() => {
-    // Simulate loading data
-    setTimeout(() => {
-      const stored = localStorage.getItem('products')
-      setProducts(stored ? JSON.parse(stored) : [])
-      setLoading(false)
-    }, 800)
+    fetchProducts()
+
+    const refresh = () => {
+      setLoading(true)
+      fetchProducts()
+    }
+
+    // listen for any event that indicates inventory changed
+    window.addEventListener('sale-added', refresh)
+    window.addEventListener('inventory-updated', refresh)
+
+    return () => {
+      window.removeEventListener('sale-added', refresh)
+      window.removeEventListener('inventory-updated', refresh)
+    }
   }, [])
 
   // Get unique categories for filter
