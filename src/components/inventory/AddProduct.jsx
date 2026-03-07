@@ -69,7 +69,7 @@ function AddProduct() {
 
     // prepare payload for backend
     const payload = rows.map((row, i) => ({
-      brand: 'DePrince AutoCare',
+      brand: 'Auto_Care',
       name: row.name.trim(),
       category: row.category,
       quantity: Number(row.quantity),
@@ -216,7 +216,7 @@ function AddProduct() {
 
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-700 border border-red-100">
-                        DePrince AutoCare
+                        Auto_Care
                       </span>
                     </td>
 

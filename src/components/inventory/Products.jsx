@@ -109,7 +109,7 @@ function Product() {
     try {
       const token = localStorage.getItem('token')
       await axios.put(`/api/products/${prod._id || prod.id}`, { quantity: qty }, {
-        baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000',
+        baseURL: import.meta.env.VITE_BACKEND_URL || 'https://deprinceautocare-backend.onrender.com',
         headers: { Authorization: `Bearer ${token}` },
       })
       window.dispatchEvent(new Event('inventory-updated'))
@@ -124,7 +124,7 @@ function Product() {
     try {
       const token = localStorage.getItem('token')
       const res = await axios.get(`/api/products/${id}`, {
-        baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000',
+        baseURL: import.meta.env.VITE_BACKEND_URL || 'https://deprinceautocare-backend.onrender.com',
         headers: { Authorization: `Bearer ${token}` },
       })
       setHistory(res.data.history || [])
@@ -463,103 +463,3 @@ function Product() {
 }
 
 export default Product
-
-
-
-
-
-// import React, { useState, useEffect } from 'react'
-
-// function Product() {
-//   const [products, setProducts] = useState([])
-//   const [search, setSearch] = useState('')
-
-//   useEffect(() => {
-//     // Replace this with your API call later
-//     // e.g. fetch('/api/products').then(res => res.json()).then(data => setProducts(data))
-//   }, [])
-
-//   const filtered = products.filter(p =>
-//     p.name.toLowerCase().includes(search.toLowerCase()) ||
-//     p.category.toLowerCase().includes(search.toLowerCase())
-//   )
-
-//   return (
-//     <div className="p-6">
-
-//       {/* Header */}
-//       <div className="flex items-center justify-between mb-6">
-//         <div>
-//           <h2 className="text-2xl font-bold text-gray-800">Products</h2>
-//           <p className="text-sm text-gray-400 mt-0.5">All DePrince AutoCare inventory</p>
-//         </div>
-//         <input
-//           value={search}
-//           onChange={(e) => setSearch(e.target.value)}
-//           placeholder="Search product..."
-//           className="border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-red-400 transition w-56"
-//         />
-//       </div>
-
-//       {/* Table */}
-//       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-//         <table className="w-full text-sm">
-
-//           <thead>
-//             <tr className="bg-gradient-to-br from-red-600 to-red-700 text-white">
-//               <th className="text-left px-4 py-3 font-semibold">#</th>
-//               <th className="text-left px-4 py-3 font-semibold">Product Name</th>
-//               <th className="text-left px-4 py-3 font-semibold">Category</th>
-//               <th className="text-left px-4 py-3 font-semibold">Brand</th>
-//               <th className="text-left px-4 py-3 font-semibold">Quantity</th>
-//               <th className="text-left px-4 py-3 font-semibold">Price (₦)</th>
-//               <th className="text-left px-4 py-3 font-semibold">Status</th>
-//             </tr>
-//           </thead>
-
-//           <tbody>
-//             {filtered.length === 0 ? (
-//               <tr>
-//                 <td colSpan={7} className="text-center py-10 text-gray-400">
-//                   No products yet
-//                 </td>
-//               </tr>
-//             ) : (
-//               filtered.map((product, index) => (
-//                 <tr
-//                   key={product.id}
-//                   className={`border-t border-gray-100 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
-//                 >
-//                   <td className="px-4 py-3 text-gray-400">{index + 1}</td>
-//                   <td className="px-4 py-3 font-medium text-gray-800">{product.name}</td>
-//                   <td className="px-4 py-3 text-gray-500">{product.category}</td>
-//                   <td className="px-4 py-3">
-//                     <span className="bg-red-50 text-red-600 text-xs font-semibold px-3 py-1 rounded-lg">
-//                       {product.brand}
-//                     </span>
-//                   </td>
-//                   <td className="px-4 py-3 text-gray-700">{product.quantity}</td>
-//                   <td className="px-4 py-3 text-gray-700">₦{product.price.toLocaleString()}</td>
-//                   <td className="px-4 py-3">
-//                     {product.quantity <= 5 ? (
-//                       <span className="bg-red-100 text-red-600 text-xs font-semibold px-2 py-1 rounded-full">Low Stock</span>
-//                     ) : (
-//                       <span className="bg-green-100 text-green-600 text-xs font-semibold px-2 py-1 rounded-full">In Stock</span>
-//                     )}
-//                   </td>
-//                 </tr>
-//               ))
-//             )}
-//           </tbody>
-
-//         </table>
-//       </div>
-
-//       {/* Footer */}
-//       <p className="text-sm text-gray-400 mt-4">{filtered.length} product{filtered.length !== 1 ? 's' : ''} found</p>
-
-//     </div>
-//   )
-// }
-
-// export default Product
