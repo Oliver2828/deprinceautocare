@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
+// pdf helpers
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // initial empty array; data loaded from backend
 const mockSalesData = [];
@@ -136,6 +139,39 @@ const CheckDailySales = () => {
     setEndDate('');
   };
 
+  // generate a PDF of the visible table + summary using jsPDF and autotable
+  const downloadPDF = () => {
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      pdf.setFontSize(18);
+      pdf.text('Daily Sales Report', 14, 20);
+      pdf.setFontSize(12);
+      pdf.text(`Total Sales: ₦${totalSales.toFixed(2)}`, 14, 30);
+      pdf.text(`Items Sold: ${totalQuantity}`, 14, 36);
+      pdf.text(`Average Ticket: ₦${averageTicket}`, 14, 42);
+
+      const headers = [['Date', 'Product', 'Qty', 'Unit Price', 'Total']];
+      const rows = sortedData.map((s) => [
+        s.date,
+        s.product,
+        s.quantity,
+        `₦${s.unitPrice.toFixed(2)}`,
+        `₦${s.total.toFixed(2)}`,
+      ]);
+
+      autoTable(pdf, {
+        startY: 50,
+        head: headers,
+        body: rows,
+        styles: { fontSize: 10 },
+      });
+
+      pdf.save('sales.pdf');
+    } catch (err) {
+      console.error('PDF generation failed', err);
+    }
+  };
+
   // Icon components (simple SVGs)
   const CalendarIcon = () => (
     <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -247,41 +283,49 @@ const CheckDailySales = () => {
           </div>
         </motion.div>
 
-        {/* Summary Cards with Icons */}
-        <motion.div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6" variants={listContainer} initial="hidden" animate="visible">
-          <motion.div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center" variants={listItem}>
-            <div className="rounded-full bg-red-100 p-3 mr-4">
-              <DollarIcon />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500 font-medium">Total Sales</p>
-              <p className="text-2xl font-bold text-gray-800">₦{totalSales.toFixed(2)}</p>
-            </div>
+        {/* wrapper for pdf export */}
+        <div className="space-y-6">
+          {/* Summary Cards with Icons */}
+          <motion.div className="grid grid-cols-1 sm:grid-cols-3 gap-5" variants={listContainer} initial="hidden" animate="visible">
+            <motion.div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center" variants={listItem}>
+              <div className="rounded-full bg-red-100 p-3 mr-4">
+                <DollarIcon />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 font-medium">Total Sales</p>
+                <p className="text-2xl font-bold text-gray-800">₦{totalSales.toFixed(2)}</p>
+              </div>
+            </motion.div>
+            <motion.div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center" variants={listItem}>
+              <div className="rounded-full bg-red-100 p-3 mr-4">
+                <CartIcon />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 font-medium">Items Sold</p>
+                <p className="text-2xl font-bold text-gray-800">{totalQuantity}</p>
+              </div>
+            </motion.div>
+            <motion.div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center" variants={listItem}>
+              <div className="rounded-full bg-red-100 p-3 mr-4">
+                <TrendingUpIcon />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 font-medium">Average Ticket</p>
+                <p className="text-2xl font-bold text-gray-800">₦{averageTicket}</p>
+              </div>
+            </motion.div>
           </motion.div>
-          <motion.div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center" variants={listItem}>
-            <div className="rounded-full bg-red-100 p-3 mr-4">
-              <CartIcon />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500 font-medium">Items Sold</p>
-              <p className="text-2xl font-bold text-gray-800">{totalQuantity}</p>
-            </div>
-          </motion.div>
-          <motion.div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center" variants={listItem}>
-            <div className="rounded-full bg-red-100 p-3 mr-4">
-              <TrendingUpIcon />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500 font-medium">Average Ticket</p>
-              <p className="text-2xl font-bold text-gray-800">₦{averageTicket}</p>
-            </div>
-          </motion.div>
-        </motion.div>
 
-        {/* Sales Table */}
-        <motion.div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" variants={fadeInUp} initial="hidden" animate="visible">
-          <div className="px-6 py-4 border-b border-gray-200">
+          {/* Sales Table */}
+          <motion.div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" variants={fadeInUp} initial="hidden" animate="visible">
+          <div className="px-6 py-4 flex justify-between items-center border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-800">Sales Details</h3>
+            <button
+              onClick={downloadPDF}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow-sm transition"
+            >
+              Download PDF
+            </button>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -332,6 +376,7 @@ const CheckDailySales = () => {
             Showing {sortedData.length} of {sales.length} records
           </div>
         </motion.div>
+        </div> {/* end pdf wrapper */}
       </div>
     </div>
   );
