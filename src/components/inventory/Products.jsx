@@ -1,4 +1,4 @@
-// Product.jsx - Enhanced Product List View with Working Pagination
+// Product.jsx
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import { Search, Package, ChevronDown, ChevronLeft, ChevronRight, Edit2, Clock } from 'lucide-react'
@@ -11,51 +11,40 @@ function Product() {
   const [loading, setLoading] = useState(true)
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [sortBy, setSortBy] = useState('name')
-  
-  // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
 
   const fetchProducts = async () => {
-      try {
-        const token = localStorage.getItem('token')
-        const res = await axios.get('/api/products', {
-          baseURL: import.meta.env.VITE_BACKEND_URL || 'https://deprinceautocare-backend.onrender.com',
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        setProducts(res.data)
-      } catch (err) {
-        console.error('Failed to load products', err)
-      } finally {
-        setLoading(false)
-      }
+    try {
+      const token = localStorage.getItem('token')
+      const res = await axios.get('/api/products', {
+        baseURL: import.meta.env.VITE_BACKEND_URL || 'https://deprinceautocare-backend.onrender.com',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      setProducts(res.data)
+    } catch (err) {
+      console.error('Failed to load products', err)
+    } finally {
+      setLoading(false)
     }
+  }
 
   useEffect(() => {
     fetchProducts()
-
-    const refresh = () => {
-      setLoading(true)
-      fetchProducts()
-    }
-
-    // listen for any event that indicates inventory changed
+    const refresh = () => { setLoading(true); fetchProducts() }
     window.addEventListener('sale-added', refresh)
     window.addEventListener('inventory-updated', refresh)
-
     return () => {
       window.removeEventListener('sale-added', refresh)
       window.removeEventListener('inventory-updated', refresh)
     }
   }, [])
 
-  // Get unique categories for filter
   const categories = ['all', ...new Set(products.map(p => p.category))]
 
-  // Filter and sort products
   const filtered = products
-    .filter(p => 
-      (search === '' || 
+    .filter(p =>
+      (search === '' ||
         p.name.toLowerCase().includes(search.toLowerCase()) ||
         p.category.toLowerCase().includes(search.toLowerCase()) ||
         p.brand.toLowerCase().includes(search.toLowerCase())
@@ -69,43 +58,18 @@ function Product() {
       return 0
     })
 
-  // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
   const currentItems = filtered.slice(indexOfFirstItem, indexOfLastItem)
   const totalPages = Math.ceil(filtered.length / itemsPerPage)
 
-  // Change page
-  const goToNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1)
-    }
-  }
+  useEffect(() => { setCurrentPage(1) }, [search, categoryFilter, sortBy])
 
-  const goToPreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1)
-    }
-  }
-
-  const goToPage = (pageNumber) => {
-    setCurrentPage(pageNumber)
-  }
-
-  // Reset to first page when filters change
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [search, categoryFilter, sortBy])
-
-  // handler for edit button
   const handleEdit = async (prod) => {
     const qtyStr = prompt('Enter new quantity', prod.quantity)
     if (qtyStr == null) return
     const qty = parseInt(qtyStr, 10)
-    if (isNaN(qty) || qty < 0) {
-      alert('Invalid quantity')
-      return
-    }
+    if (isNaN(qty) || qty < 0) { alert('Invalid quantity'); return }
     try {
       const token = localStorage.getItem('token')
       await axios.put(`/api/products/${prod._id || prod.id}`, { quantity: qty }, {
@@ -114,12 +78,10 @@ function Product() {
       })
       window.dispatchEvent(new Event('inventory-updated'))
     } catch (err) {
-      console.error('Failed to update quantity', err)
       alert('Failed to update product quantity')
     }
   }
 
-  // show history modal
   const openHistory = async (id) => {
     try {
       const token = localStorage.getItem('token')
@@ -130,15 +92,9 @@ function Product() {
       setHistory(res.data.history || [])
       setShowHistoryModal(true)
     } catch (err) {
-      console.error('Failed to load history', err)
       alert('Could not fetch history')
     }
   }
-
-  const closeModal = () => setShowHistoryModal(false)
-
-  const totalValue = filtered.reduce((sum, p) => sum + (p.price * p.quantity), 0)
-  const lowStockCount = filtered.filter(p => p.quantity <= 5).length
 
   const getStockStatus = (quantity) => {
     if (quantity === 0) return { label: 'Out of Stock', color: 'bg-red-100 text-red-700' }
@@ -147,316 +103,286 @@ function Product() {
     return { label: 'In Stock', color: 'bg-green-100 text-green-700' }
   }
 
-  // Generate page numbers for pagination
+  const totalValue = filtered.reduce((sum, p) => sum + (p.price * p.quantity), 0)
+  const lowStockCount = filtered.filter(p => p.quantity <= 5).length
+
   const getPageNumbers = () => {
-    const pageNumbers = []
-    const maxPagesToShow = 5
-    
-    if (totalPages <= maxPagesToShow) {
-      for (let i = 1; i <= totalPages; i++) {
-        pageNumbers.push(i)
-      }
+    const pages = []
+    if (totalPages <= 5) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i)
     } else {
       if (currentPage <= 3) {
-        for (let i = 1; i <= 4; i++) pageNumbers.push(i)
-        pageNumbers.push('...')
-        pageNumbers.push(totalPages)
+        for (let i = 1; i <= 4; i++) pages.push(i)
+        pages.push('...'); pages.push(totalPages)
       } else if (currentPage >= totalPages - 2) {
-        pageNumbers.push(1)
-        pageNumbers.push('...')
-        for (let i = totalPages - 3; i <= totalPages; i++) pageNumbers.push(i)
+        pages.push(1); pages.push('...')
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i)
       } else {
-        pageNumbers.push(1)
-        pageNumbers.push('...')
-        for (let i = currentPage - 1; i <= currentPage + 1; i++) pageNumbers.push(i)
-        pageNumbers.push('...')
-        pageNumbers.push(totalPages)
+        pages.push(1); pages.push('...')
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i)
+        pages.push('...'); pages.push(totalPages)
       }
     }
-    
-    return pageNumbers
+    return pages
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header with Stats */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Products Inventory</h1>
-              <p className="text-sm text-gray-500 mt-1">Manage your auto care product catalog</p>
-            </div>
-          </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-4 gap-4 mt-4">
-            <div className="bg-gradient-to-br from-red-50 to-white p-4 rounded-xl border border-red-100">
-              <p className="text-sm text-gray-600">Total Products</p>
-              <p className="text-2xl font-bold text-gray-900">{filtered.length}</p>
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 px-4 sm:px-6 py-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Products Inventory</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Manage your auto care product catalog</p>
+        </div>
+
+        {/* Stats — 2 col on mobile, 4 col on desktop */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+          {[
+            { label: 'Total Products', value: filtered.length },
+            { label: 'Inventory Value', value: `₦${totalValue.toLocaleString()}` },
+            { label: 'Low Stock Items', value: lowStockCount, red: lowStockCount > 0 },
+            { label: 'Categories', value: categories.length - 1 },
+          ].map((stat, i) => (
+            <div key={i} className="bg-gradient-to-br from-red-50 to-white p-3 sm:p-4 rounded-xl border border-red-100">
+              <p className="text-xs text-gray-600">{stat.label}</p>
+              <p className={`text-lg sm:text-2xl font-bold ${stat.red ? 'text-red-600' : 'text-gray-900'}`}>{stat.value}</p>
             </div>
-            <div className="bg-gradient-to-br from-red-50 to-white p-4 rounded-xl border border-red-100">
-              <p className="text-sm text-gray-600">Inventory Value</p>
-              <p className="text-2xl font-bold text-gray-900">₦{totalValue.toLocaleString()}</p>
-            </div>
-            <div className="bg-gradient-to-br from-red-50 to-white p-4 rounded-xl border border-red-100">
-              <p className="text-sm text-gray-600">Low Stock Items</p>
-              <p className={`text-2xl font-bold ${lowStockCount > 0 ? 'text-red-600' : 'text-gray-900'}`}>
-                {lowStockCount}
-              </p>
-            </div>
-            <div className="bg-gradient-to-br from-red-50 to-white p-4 rounded-xl border border-red-100">
-              <p className="text-sm text-gray-600">Categories</p>
-              <p className="text-2xl font-bold text-gray-900">{categories.length - 1}</p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="p-6">
-        {/* Filters Bar */}
+      <div className="p-4 sm:p-6">
+
+        {/* Filters */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-          <div className="flex items-center gap-4">
-            {/* Search */}
+          <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search products by name, category, or brand..."
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-50 transition"
+                placeholder="Search by name, category or brand..."
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-red-400 transition"
               />
             </div>
-
-            {/* Category Filter */}
-            <div className="relative">
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="appearance-none pl-4 pr-10 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-50 transition bg-white"
-              >
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>
-                    {cat === 'all' ? 'All Categories' : cat}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
-            </div>
-
-            {/* Sort */}
-            <div className="relative">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="appearance-none pl-4 pr-10 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-50 transition bg-white"
-              >
-                <option value="name">Sort by Name</option>
-                <option value="price">Sort by Price (High to Low)</option>
-                <option value="quantity">Sort by Quantity (Low to High)</option>
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+            <div className="flex gap-3">
+              <div className="relative flex-1 sm:flex-none">
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="w-full appearance-none pl-4 pr-8 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-red-400 transition bg-white"
+                >
+                  {categories.map(cat => (
+                    <option key={cat} value={cat}>{cat === 'all' ? 'All Categories' : cat}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+              </div>
+              <div className="relative flex-1 sm:flex-none">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full appearance-none pl-4 pr-8 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-red-400 transition bg-white"
+                >
+                  <option value="name">Sort: Name</option>
+                  <option value="price">Sort: Price</option>
+                  <option value="quantity">Sort: Qty</option>
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Products Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        {/* DESKTOP TABLE */}
+        <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="relative">
-                <div className="w-12 h-12 border-4 border-red-200 border-t-red-600 rounded-full animate-spin"></div>
-                <Package className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-red-600" size={20} />
-              </div>
+              <div className="w-12 h-12 border-4 border-red-200 border-t-red-600 rounded-full animate-spin"></div>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="bg-gradient-to-r from-red-600 to-red-700">
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">#</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Product</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Category</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Brand</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Quantity</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Unit Price</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Total Value</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Actions</th>
+                    {['#', 'Product', 'Category', 'Brand', 'Quantity', 'Unit Price', 'Total Value', 'Status', 'Actions'].map(h => (
+                      <th key={h} className="px-4 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">{h}</th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-100">
                   {currentItems.length === 0 ? (
                     <tr>
-                      <td colSpan="8" className="px-6 py-12 text-center">
-                        <Package className="mx-auto text-gray-400 mb-3" size={40} />
+                      <td colSpan="9" className="px-6 py-12 text-center">
+                        <Package className="mx-auto text-gray-300 mb-3" size={40} />
                         <p className="text-gray-500 font-medium">No products found</p>
-                        <p className="text-sm text-gray-400 mt-1">Try adjusting your search or filters</p>
                       </td>
                     </tr>
-                  ) : (
-                    currentItems.map((product, index) => {
-                      const stockStatus = getStockStatus(product.quantity)
-                      const globalIndex = indexOfFirstItem + index + 1
-                      return (
-                        <tr 
-                          key={product.id} 
-                          className="hover:bg-red-50/30 transition group"
-                        >
-                          <td className="px-6 py-4 text-sm text-gray-500">
-                            <span className="font-mono">{globalIndex.toString().padStart(2, '0')}</span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center">
-                              <div className="w-8 h-8 bg-gradient-to-br from-red-100 to-white rounded-lg flex items-center justify-center mr-3">
-                                <Package className="text-red-600" size={16} />
-                              </div>
-                              <div>
-                                <p className="font-medium text-gray-900">{product.name}</p>
-                                <p className="text-xs text-gray-400">ID: {product.id}</p>
-                              </div>
+                  ) : currentItems.map((product, index) => {
+                    const status = getStockStatus(product.quantity)
+                    return (
+                      <tr key={product.id} className="hover:bg-red-50/20 transition">
+                        <td className="px-4 py-4 text-sm text-gray-400 font-mono">{(indexOfFirstItem + index + 1).toString().padStart(2, '0')}</td>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center shrink-0">
+                              <Package className="text-red-600" size={14} />
                             </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="text-sm text-gray-700">{product.category}</span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700">
-                              {product.brand}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`text-sm font-medium ${
-                              product.quantity <= 5 ? 'text-red-600' : 'text-gray-900'
-                            }`}>
-                              {product.quantity.toLocaleString()}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="text-sm font-medium text-gray-900">
-                              ₦{product.price.toLocaleString()}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="text-sm font-medium text-gray-900">
-                              ₦{(product.price * product.quantity).toLocaleString()}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${stockStatus.color}`}>
-                              {stockStatus.label}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 flex gap-2">
-                            <button onClick={() => handleEdit(product)} className="text-blue-600 hover:text-blue-800">
-                              <Edit2 size={16} />
-                            </button>
-                            <button onClick={() => openHistory(product._id || product.id)} className="text-gray-600 hover:text-gray-800">
-                              <Clock size={16} />
-                            </button>
-                          </td>
-                        </tr>
-                      )
-                    })
-                  )}
+                            <div>
+                              <p className="font-medium text-gray-900 text-sm">{product.name}</p>
+                              <p className="text-xs text-gray-400">ID: {product.id}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 text-sm text-gray-600">{product.category}</td>
+                        <td className="px-4 py-4">
+                          <span className="bg-red-50 text-red-700 text-xs font-semibold px-2.5 py-1 rounded-full">{product.brand}</span>
+                        </td>
+                        <td className="px-4 py-4 text-sm font-medium text-gray-900">{product.quantity}</td>
+                        <td className="px-4 py-4 text-sm font-medium text-gray-900">₦{product.price.toLocaleString()}</td>
+                        <td className="px-4 py-4 text-sm font-medium text-gray-900">₦{(product.price * product.quantity).toLocaleString()}</td>
+                        <td className="px-4 py-4">
+                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${status.color}`}>{status.label}</span>
+                        </td>
+                        <td className="px-4 py-4 flex gap-3">
+                          <button onClick={() => handleEdit(product)} className="text-blue-500 hover:text-blue-700 transition"><Edit2 size={16} /></button>
+                          <button onClick={() => openHistory(product._id || product.id)} className="text-gray-400 hover:text-gray-700 transition"><Clock size={16} /></button>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
           )}
         </div>
 
-        {/* Pagination Footer */}
+        {/* MOBILE CARDS */}
+        <div className="md:hidden flex flex-col gap-3">
+          {loading ? (
+            <div className="flex justify-center py-16">
+              <div className="w-10 h-10 border-4 border-red-200 border-t-red-600 rounded-full animate-spin"></div>
+            </div>
+          ) : currentItems.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-10 text-center">
+              <Package className="mx-auto text-gray-300 mb-3" size={36} />
+              <p className="text-gray-500 font-medium">No products found</p>
+            </div>
+          ) : currentItems.map((product, index) => {
+            const status = getStockStatus(product.quantity)
+            return (
+              <div key={product.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-red-50 rounded-lg flex items-center justify-center shrink-0">
+                      <Package className="text-red-600" size={16} />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900 text-sm">{product.name}</p>
+                      <p className="text-xs text-gray-400">{product.category}</p>
+                    </div>
+                  </div>
+                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${status.color}`}>{status.label}</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                  <div>
+                    <p className="text-xs text-gray-400">Quantity</p>
+                    <p className={`font-semibold ${product.quantity <= 5 ? 'text-red-600' : 'text-gray-900'}`}>{product.quantity}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400">Unit Price</p>
+                    <p className="font-semibold text-gray-900">₦{product.price.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400">Total Value</p>
+                    <p className="font-semibold text-gray-900">₦{(product.price * product.quantity).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400">Brand</p>
+                    <span className="bg-red-50 text-red-700 text-xs font-semibold px-2 py-0.5 rounded-full">{product.brand}</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-3 border-t border-gray-100">
+                  <button onClick={() => handleEdit(product)} className="flex items-center gap-1.5 text-xs text-blue-600 font-medium hover:text-blue-800 transition">
+                    <Edit2 size={14} /> Edit Qty
+                  </button>
+                  <button onClick={() => openHistory(product._id || product.id)} className="flex items-center gap-1.5 text-xs text-gray-500 font-medium hover:text-gray-700 transition">
+                    <Clock size={14} /> History
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Pagination */}
         {filtered.length > 0 && (
-          <div className="flex items-center justify-between mt-4 px-2">
-            <p className="text-sm text-gray-500">
-              Showing <span className="font-medium text-gray-900">{indexOfFirstItem + 1}</span> to{' '}
-              <span className="font-medium text-gray-900">
-                {Math.min(indexOfLastItem, filtered.length)}
-              </span>{' '}
-              of <span className="font-medium text-gray-900">{filtered.length}</span> products
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 px-1">
+            <p className="text-sm text-gray-500 order-2 sm:order-1">
+              Showing {indexOfFirstItem + 1}–{Math.min(indexOfLastItem, filtered.length)} of {filtered.length}
             </p>
-            
-            <div className="flex items-center gap-2">
-              {/* Previous Button */}
+            <div className="flex items-center gap-1.5 order-1 sm:order-2">
               <button
-                onClick={goToPreviousPage}
+                onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
                 disabled={currentPage === 1}
-                className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition ${
-                  currentPage === 1
-                    ? 'text-gray-400 bg-gray-100 cursor-not-allowed'
-                    : 'text-gray-700 bg-white border border-gray-300 hover:bg-red-50 hover:border-red-300 hover:text-red-600'
-                }`}
+                className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 1 ? 'text-gray-300 bg-gray-100 cursor-not-allowed' : 'text-gray-700 bg-white border border-gray-300 hover:bg-red-50 hover:border-red-300 hover:text-red-600'}`}
               >
                 <ChevronLeft size={16} />
-                Previous
+                <span className="hidden sm:inline">Prev</span>
               </button>
 
-              {/* Page Numbers */}
-              {getPageNumbers().map((page, index) => (
+              {getPageNumbers().map((page, i) => (
                 page === '...' ? (
-                  <span key={`ellipsis-${index}`} className="px-3 py-2 text-gray-400">...</span>
+                  <span key={`e-${i}`} className="px-2 text-gray-400 text-sm">...</span>
                 ) : (
                   <button
                     key={page}
-                    onClick={() => goToPage(page)}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                      currentPage === page
-                        ? 'bg-red-600 text-white hover:bg-red-700'
-                        : 'text-gray-700 bg-white border border-gray-300 hover:bg-red-50 hover:border-red-300 hover:text-red-600'
-                    }`}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === page ? 'bg-red-600 text-white' : 'text-gray-700 bg-white border border-gray-300 hover:bg-red-50 hover:text-red-600'}`}
                   >
                     {page}
                   </button>
                 )
               ))}
 
-              {/* Next Button */}
               <button
-                onClick={goToNextPage}
+                onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition ${
-                  currentPage === totalPages
-                    ? 'text-gray-400 bg-gray-100 cursor-not-allowed'
-                    : 'text-gray-700 bg-white border border-gray-300 hover:bg-red-50 hover:border-red-300 hover:text-red-600'
-                }`}
+                className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === totalPages ? 'text-gray-300 bg-gray-100 cursor-not-allowed' : 'text-gray-700 bg-white border border-gray-300 hover:bg-red-50 hover:border-red-300 hover:text-red-600'}`}
               >
-                Next
+                <span className="hidden sm:inline">Next</span>
                 <ChevronRight size={16} />
               </button>
             </div>
           </div>
         )}
 
-        {/* history modal */}
+        {/* History Modal */}
         {showHistoryModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-sm max-h-[80vh] overflow-auto">
-              <h2 className="text-xl font-bold mb-4">Edit History</h2>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl p-6 w-full max-w-sm max-h-[80vh] overflow-auto">
+              <h2 className="text-lg font-bold mb-4">Edit History</h2>
               {history.length === 0 ? (
-                <p className="text-sm text-gray-600">No quantity changes recorded.</p>
+                <p className="text-sm text-gray-500">No quantity changes recorded.</p>
               ) : (
                 <ul className="space-y-2 text-sm">
                   {history.map((h, i) => (
-                    <li key={i}>
-                      <span>{new Date(h.date).toLocaleString()}</span>
-                      {' changed from '}
-                      <strong>{h.oldQuantity}</strong>
-                      {' to '}
-                      <strong>{h.newQuantity}</strong>
+                    <li key={i} className="text-gray-700">
+                      {new Date(h.date).toLocaleString()} — <strong>{h.oldQuantity}</strong> → <strong>{h.newQuantity}</strong>
                     </li>
                   ))}
                 </ul>
               )}
-              <button
-                onClick={closeModal}
-                className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg"
-              >
+              <button onClick={() => setShowHistoryModal(false)} className="mt-4 w-full px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:opacity-90 transition">
                 Close
               </button>
             </div>
           </div>
         )}
+
       </div>
     </div>
   )
