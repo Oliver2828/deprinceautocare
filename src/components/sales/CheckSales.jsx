@@ -19,7 +19,7 @@ const getDatePreset = (preset) => {
   if (preset === 'today') return { start: todayStr, end: todayStr };
 
   const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay()); // Sunday as first day
+  startOfWeek.setDate(today.getDate() - today.getDay());
   const startWeekStr = startOfWeek.toISOString().slice(0, 10);
   if (preset === 'week') return { start: startWeekStr, end: todayStr };
 
@@ -31,7 +31,6 @@ const getDatePreset = (preset) => {
 };
 
 const CheckDailySales = () => {
-  // animation variants
   const fadeInUp = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
@@ -51,13 +50,11 @@ const CheckDailySales = () => {
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Filter sales based on date range
   const filteredData = useMemo(() => {
-    const source = sales; // use backend data
+    const source = sales;
     if (!startDate && !endDate) return source;
-
     return source.filter((sale) => {
-      const saleDate = sale.date.slice(0, 10); // compare yyyy-mm-dd
+      const saleDate = sale.date.slice(0, 10);
       if (startDate && endDate) {
         return saleDate >= startDate && saleDate <= endDate;
       } else if (startDate) {
@@ -69,7 +66,6 @@ const CheckDailySales = () => {
     });
   }, [startDate, endDate, sales]);
 
-  // Sort data
   const sortedData = useMemo(() => {
     const sortable = [...filteredData];
     sortable.sort((a, b) => {
@@ -86,7 +82,6 @@ const CheckDailySales = () => {
     return sortable;
   }, [filteredData, sortConfig]);
 
-  // Handle sort request
   const requestSort = (key) => {
     setSortConfig((prev) => ({
       key,
@@ -94,19 +89,16 @@ const CheckDailySales = () => {
     }));
   };
 
-  // Calculate totals
   const totalSales = filteredData.reduce((acc, sale) => acc + sale.total, 0);
   const totalQuantity = filteredData.reduce((acc, sale) => acc + sale.quantity, 0);
   const averageTicket = filteredData.length ? (totalSales / filteredData.length).toFixed(2) : 0;
 
-  // Apply date preset
   const applyPreset = (preset) => {
     const { start, end } = getDatePreset(preset);
     setStartDate(start);
     setEndDate(end);
   };
 
-  // Fetch sales from backend
   const fetchSales = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -124,7 +116,6 @@ const CheckDailySales = () => {
 
   useEffect(() => {
     fetchSales();
-
     const listener = () => {
       setLoading(true);
       fetchSales();
@@ -133,13 +124,11 @@ const CheckDailySales = () => {
     return () => window.removeEventListener('sale-added', listener);
   }, []);
 
-  // Reset filters
   const resetFilters = () => {
     setStartDate('');
     setEndDate('');
   };
 
-  // generate a PDF of the visible table + summary using jsPDF and autotable
   const downloadPDF = () => {
     try {
       const pdf = new jsPDF('p', 'mm', 'a4');
@@ -172,7 +161,21 @@ const CheckDailySales = () => {
     }
   };
 
-  // Icon components (simple SVGs)
+  const handleDeleteSale = async (saleId) => {
+    if (!window.confirm('Delete this sale record? This cannot be undone.')) return;
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`/api/sales/${saleId}`, {
+        baseURL: import.meta.env.VITE_BACKEND_URL || 'https://deprinceautocare-backend.onrender.com',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSales((prev) => prev.filter((s) => (s._id || s.id) !== saleId));
+    } catch (err) {
+      console.error('Failed to delete sale', err);
+      alert('Could not delete sale record');
+    }
+  };
+
   const CalendarIcon = () => (
     <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -197,7 +200,6 @@ const CheckDailySales = () => {
     </svg>
   );
 
-  // Sort indicator
   const SortIcon = ({ column }) => {
     if (sortConfig.key !== column) return null;
     return sortConfig.direction === 'asc' ? (
@@ -214,13 +216,11 @@ const CheckDailySales = () => {
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header with gradient */}
         <motion.div className="mb-6" variants={fadeInUp} initial="hidden" animate="visible">
           <h1 className="text-3xl font-bold text-gray-800">Daily Sales</h1>
           <p className="text-gray-600">View and filter your sales records</p>
         </motion.div>
 
-        {/* Filter Card */}
         <motion.div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6" variants={fadeInUp} initial="hidden" animate="visible">
           <div className="flex items-center space-x-2 mb-4">
             <CalendarIcon />
@@ -273,7 +273,7 @@ const CheckDailySales = () => {
                   Reset
                 </button>
                 <button
-                  onClick={() => {}} // filter already applied via useMemo
+                  onClick={() => {}}
                   className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg shadow-sm transition"
                 >
                   Apply
@@ -283,9 +283,7 @@ const CheckDailySales = () => {
           </div>
         </motion.div>
 
-        {/* wrapper for pdf export */}
         <div className="space-y-6">
-          {/* Summary Cards with Icons */}
           <motion.div className="grid grid-cols-1 sm:grid-cols-3 gap-5" variants={listContainer} initial="hidden" animate="visible">
             <motion.div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center" variants={listItem}>
               <div className="rounded-full bg-red-100 p-3 mr-4">
@@ -316,67 +314,75 @@ const CheckDailySales = () => {
             </motion.div>
           </motion.div>
 
-          {/* Sales Table */}
           <motion.div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" variants={fadeInUp} initial="hidden" animate="visible">
-          <div className="px-6 py-4 flex justify-between items-center border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-800">Sales Details</h3>
-            <button
-              onClick={downloadPDF}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow-sm transition"
-            >
-              Download PDF
-            </button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  {['date', 'product', 'quantity', 'unitPrice', 'total'].map((col) => (
-                    <th
-                      key={col}
-                      onClick={() => requestSort(col)}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700"
-                    >
-                      <span className="flex items-center">
-                        {col === 'unitPrice' ? 'Unit Price' : col === 'total' ? 'Total' : col}
-                        <SortIcon column={col} />
-                      </span>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {sortedData.length > 0 ? (
-                  sortedData.map((sale) => (
-                    <tr key={sale._id || sale.id} className="hover:bg-gray-50 transition">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{sale.date}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{sale.product}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{sale.quantity}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">₦{sale.unitPrice.toFixed(2)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₦{sale.total.toFixed(2)}</td>
-                    </tr>
-                  ))
-                ) : (
+            <div className="px-6 py-4 flex justify-between items-center border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-800">Sales Details</h3>
+              <button
+                onClick={downloadPDF}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow-sm transition"
+              >
+                Download PDF
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
                   <tr>
-                    <td colSpan="5" className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center">
-                        <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <p className="text-gray-500 text-lg">No sales found</p>
-                        <p className="text-gray-400 text-sm">Try adjusting your date range</p>
-                      </div>
-                    </td>
+                    {['date', 'product', 'quantity', 'unitPrice', 'total'].map((col) => (
+                      <th
+                        key={col}
+                        onClick={() => requestSort(col)}
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700"
+                      >
+                        <span className="flex items-center">
+                          {col === 'unitPrice' ? 'Unit Price' : col === 'total' ? 'Total' : col}
+                          <SortIcon column={col} />
+                        </span>
+                      </th>
+                    ))}
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 text-sm text-gray-500">
-            Showing {sortedData.length} of {sales.length} records
-          </div>
-        </motion.div>
-        </div> {/* end pdf wrapper */}
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {sortedData.length > 0 ? (
+                    sortedData.map((sale) => (
+                      <tr key={sale._id || sale.id} className="hover:bg-gray-50 transition">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{sale.date}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{sale.product}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{sale.quantity}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">₦{sale.unitPrice.toFixed(2)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₦{sale.total.toFixed(2)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <button
+                            onClick={() => handleDeleteSale(sale._id || sale.id)}
+                            className="px-2 py-1 bg-red-600 text-white rounded-md text-xs hover:bg-red-700 transition"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center">
+                          <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <p className="text-gray-500 text-lg">No sales found</p>
+                          <p className="text-gray-400 text-sm">Try adjusting your date range</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 text-sm text-gray-500">
+              Showing {sortedData.length} of {sales.length} records
+            </div>
+          </motion.div>
+        </div>
       </div>
     </div>
   );
