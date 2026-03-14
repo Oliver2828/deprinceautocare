@@ -1,7 +1,7 @@
 // Product.jsx - Enhanced Product List View with Working Pagination
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
-import { Search, Package, ChevronDown, ChevronLeft, ChevronRight, Edit2, Clock } from 'lucide-react'
+import { Search, Package, ChevronDown, ChevronLeft, ChevronRight, Edit2, Clock, Trash2 } from 'lucide-react'
 
 function Product() {
   const [products, setProducts] = useState([])
@@ -11,25 +11,23 @@ function Product() {
   const [loading, setLoading] = useState(true)
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [sortBy, setSortBy] = useState('name')
-  
-  // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
 
   const fetchProducts = async () => {
-      try {
-        const token = localStorage.getItem('token')
-        const res = await axios.get('/api/products', {
-          baseURL: import.meta.env.VITE_BACKEND_URL || 'https://deprinceautocare-backend.onrender.com',
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        setProducts(res.data)
-      } catch (err) {
-        console.error('Failed to load products', err)
-      } finally {
-        setLoading(false)
-      }
+    try {
+      const token = localStorage.getItem('token')
+      const res = await axios.get('/api/products', {
+        baseURL: import.meta.env.VITE_BACKEND_URL || 'https://deprinceautocare-backend.onrender.com',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      setProducts(res.data)
+    } catch (err) {
+      console.error('Failed to load products', err)
+    } finally {
+      setLoading(false)
     }
+  }
 
   useEffect(() => {
     fetchProducts()
@@ -39,7 +37,6 @@ function Product() {
       fetchProducts()
     }
 
-    // listen for any event that indicates inventory changed
     window.addEventListener('sale-added', refresh)
     window.addEventListener('inventory-updated', refresh)
 
@@ -49,10 +46,8 @@ function Product() {
     }
   }, [])
 
-  // Get unique categories for filter
   const categories = ['all', ...new Set(products.map(p => p.category))]
 
-  // Filter and sort products
   const filtered = products
     .filter(p => 
       (search === '' || 
@@ -69,35 +64,23 @@ function Product() {
       return 0
     })
 
-  // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
   const currentItems = filtered.slice(indexOfFirstItem, indexOfLastItem)
   const totalPages = Math.ceil(filtered.length / itemsPerPage)
 
-  // Change page
   const goToNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1)
-    }
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1)
   }
-
   const goToPreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1)
-    }
+    if (currentPage > 1) setCurrentPage(currentPage - 1)
   }
+  const goToPage = (pageNumber) => setCurrentPage(pageNumber)
 
-  const goToPage = (pageNumber) => {
-    setCurrentPage(pageNumber)
-  }
-
-  // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1)
   }, [search, categoryFilter, sortBy])
 
-  // handler for edit button
   const handleEdit = async (prod) => {
     const qtyStr = prompt('Enter new quantity', prod.quantity)
     if (qtyStr == null) return
@@ -119,7 +102,23 @@ function Product() {
     }
   }
 
-  // show history modal
+  const handleDelete = async (prod) => {
+    const id = prod._id || prod.id
+    if (!window.confirm(`Delete "${prod.name}"? This action cannot be undone.`)) return
+    try {
+      const token = localStorage.getItem('token')
+      await axios.delete(`/api/products/${id}`, {
+        baseURL: import.meta.env.VITE_BACKEND_URL || 'https://deprinceautocare-backend.onrender.com',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      setProducts(prev => prev.filter(p => (p._id || p.id) !== id))
+      window.dispatchEvent(new Event('inventory-updated'))
+    } catch (err) {
+      console.error('Failed to delete product', err)
+      alert('Could not delete product')
+    }
+  }
+
   const openHistory = async (id) => {
     try {
       const token = localStorage.getItem('token')
@@ -147,15 +146,11 @@ function Product() {
     return { label: 'In Stock', color: 'bg-green-100 text-green-700' }
   }
 
-  // Generate page numbers for pagination
   const getPageNumbers = () => {
     const pageNumbers = []
     const maxPagesToShow = 5
-    
     if (totalPages <= maxPagesToShow) {
-      for (let i = 1; i <= totalPages; i++) {
-        pageNumbers.push(i)
-      }
+      for (let i = 1; i <= totalPages; i++) pageNumbers.push(i)
     } else {
       if (currentPage <= 3) {
         for (let i = 1; i <= 4; i++) pageNumbers.push(i)
@@ -173,13 +168,11 @@ function Product() {
         pageNumbers.push(totalPages)
       }
     }
-    
     return pageNumbers
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header with Stats */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
@@ -188,8 +181,6 @@ function Product() {
               <p className="text-sm text-gray-500 mt-1">Manage your auto care product catalog</p>
             </div>
           </div>
-
-          {/* Stats Cards */}
           <div className="grid grid-cols-4 gap-4 mt-4">
             <div className="bg-gradient-to-br from-red-50 to-white p-4 rounded-xl border border-red-100">
               <p className="text-sm text-gray-600">Total Products</p>
@@ -213,12 +204,9 @@ function Product() {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="p-6">
-        {/* Filters Bar */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
           <div className="flex items-center gap-4">
-            {/* Search */}
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
               <input
@@ -229,7 +217,6 @@ function Product() {
               />
             </div>
 
-            {/* Category Filter */}
             <div className="relative">
               <select
                 value={categoryFilter}
@@ -245,7 +232,6 @@ function Product() {
               <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
             </div>
 
-            {/* Sort */}
             <div className="relative">
               <select
                 value={sortBy}
@@ -261,7 +247,6 @@ function Product() {
           </div>
         </div>
 
-        {/* Products Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center py-20">
@@ -289,7 +274,7 @@ function Product() {
                 <tbody className="divide-y divide-gray-200">
                   {currentItems.length === 0 ? (
                     <tr>
-                      <td colSpan="8" className="px-6 py-12 text-center">
+                      <td colSpan="9" className="px-6 py-12 text-center">
                         <Package className="mx-auto text-gray-400 mb-3" size={40} />
                         <p className="text-gray-500 font-medium">No products found</p>
                         <p className="text-sm text-gray-400 mt-1">Try adjusting your search or filters</p>
@@ -300,10 +285,7 @@ function Product() {
                       const stockStatus = getStockStatus(product.quantity)
                       const globalIndex = indexOfFirstItem + index + 1
                       return (
-                        <tr 
-                          key={product.id} 
-                          className="hover:bg-red-50/30 transition group"
-                        >
+                        <tr key={product.id || product._id} className="hover:bg-red-50/30 transition group">
                           <td className="px-6 py-4 text-sm text-gray-500">
                             <span className="font-mono">{globalIndex.toString().padStart(2, '0')}</span>
                           </td>
@@ -314,34 +296,26 @@ function Product() {
                               </div>
                               <div>
                                 <p className="font-medium text-gray-900">{product.name}</p>
-                                <p className="text-xs text-gray-400">ID: {product.id}</p>
+                                <p className="text-xs text-gray-400">ID: {product.id || product._id}</p>
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4">
-                            <span className="text-sm text-gray-700">{product.category}</span>
-                          </td>
+                          <td className="px-6 py-4"><span className="text-sm text-gray-700">{product.category}</span></td>
                           <td className="px-6 py-4">
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700">
                               {product.brand}
                             </span>
                           </td>
                           <td className="px-6 py-4">
-                            <span className={`text-sm font-medium ${
-                              product.quantity <= 5 ? 'text-red-600' : 'text-gray-900'
-                            }`}>
+                            <span className={`text-sm font-medium ${product.quantity <= 5 ? 'text-red-600' : 'text-gray-900'}`}>
                               {product.quantity.toLocaleString()}
                             </span>
                           </td>
                           <td className="px-6 py-4">
-                            <span className="text-sm font-medium text-gray-900">
-                              ₦{product.price.toLocaleString()}
-                            </span>
+                            <span className="text-sm font-medium text-gray-900">₦{product.price.toLocaleString()}</span>
                           </td>
                           <td className="px-6 py-4">
-                            <span className="text-sm font-medium text-gray-900">
-                              ₦{(product.price * product.quantity).toLocaleString()}
-                            </span>
+                            <span className="text-sm font-medium text-gray-900">₦{(product.price * product.quantity).toLocaleString()}</span>
                           </td>
                           <td className="px-6 py-4">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${stockStatus.color}`}>
@@ -355,6 +329,9 @@ function Product() {
                             <button onClick={() => openHistory(product._id || product.id)} className="text-gray-600 hover:text-gray-800">
                               <Clock size={16} />
                             </button>
+                            <button onClick={() => handleDelete(product)} className="text-red-600 hover:text-red-800">
+                              <Trash2 size={16} />
+                            </button>
                           </td>
                         </tr>
                       )
@@ -366,19 +343,14 @@ function Product() {
           )}
         </div>
 
-        {/* Pagination Footer */}
         {filtered.length > 0 && (
           <div className="flex items-center justify-between mt-4 px-2">
             <p className="text-sm text-gray-500">
               Showing <span className="font-medium text-gray-900">{indexOfFirstItem + 1}</span> to{' '}
-              <span className="font-medium text-gray-900">
-                {Math.min(indexOfLastItem, filtered.length)}
-              </span>{' '}
+              <span className="font-medium text-gray-900">{Math.min(indexOfLastItem, filtered.length)}</span>{' '}
               of <span className="font-medium text-gray-900">{filtered.length}</span> products
             </p>
-            
             <div className="flex items-center gap-2">
-              {/* Previous Button */}
               <button
                 onClick={goToPreviousPage}
                 disabled={currentPage === 1}
@@ -391,8 +363,6 @@ function Product() {
                 <ChevronLeft size={16} />
                 Previous
               </button>
-
-              {/* Page Numbers */}
               {getPageNumbers().map((page, index) => (
                 page === '...' ? (
                   <span key={`ellipsis-${index}`} className="px-3 py-2 text-gray-400">...</span>
@@ -410,8 +380,6 @@ function Product() {
                   </button>
                 )
               ))}
-
-              {/* Next Button */}
               <button
                 onClick={goToNextPage}
                 disabled={currentPage === totalPages}
@@ -428,7 +396,6 @@ function Product() {
           </div>
         )}
 
-        {/* history modal */}
         {showHistoryModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-sm max-h-[80vh] overflow-auto">
